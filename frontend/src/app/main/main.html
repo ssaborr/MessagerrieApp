@@ -1,0 +1,176 @@
+<div class="main-wrap">
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo-wrap">
+        <span class="logo-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+        </span>
+        <h1 class="logo">MyMessagerie</h1>
+      </div>
+
+      <div class="header-actions">
+        <div class="search-wrap" style="margin-right:20px;">
+          <input 
+            type="text"
+            class="search-input"
+            [(ngModel)]="searchQuery"
+            (input)="searchUsers()"
+            placeholder="Rechercher un utilisateur…"
+          />
+          @if (searchResults.length > 0) {
+            <div class="search-dropdown">
+              @for (u of searchResults; track u._id) {
+                <div class="search-item">
+                  <span class="search-item-name">{{ u.identifiant }}</span>
+                  @if (isPendingSent(u._id)) {
+                    <span class="search-item-badge">Demande envoyée</span>
+                  } @else {
+                    <button type="button" class="btn-add" (click)="addContact(u._id)">Ajouter</button>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="notif-wrap">
+          <button type="button" class="btn-notif" [class.has-notifications]="totalNotificationCount > 0" (click)="toggleNotifications()" aria-label="Notifications">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            @if (totalNotificationCount > 0) {
+              <span class="notif-dot" aria-hidden="true"></span>
+              <span class="notif-badge">{{ totalNotificationCount > 99 ? '99+' : totalNotificationCount }}</span>
+            }
+          </button>
+          @if (notificationOpen) {
+            <div class="notif-panel" (click)="$event.stopPropagation()">
+              <h3 class="notif-panel-title">Notifications</h3>
+              @if (contactRequests.length > 0) {
+                <div class="notif-section">
+                  <p class="notif-section-label">Demandes de contact</p>
+                  @for (req of contactRequests; track req._id) {
+                    <div class="notif-item">
+                      <span>{{ req.fromUser?.identifiant }} souhaite vous ajouter</span>
+                      <div class="notif-item-actions">
+                        <button type="button" class="btn-accept" (click)="acceptRequest(req._id)">Accepter</button>
+                        <button type="button" class="btn-reject" (click)="rejectRequest(req._id)">Refuser</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+              @if (unreadConversations.length > 0) {
+                <div class="notif-section">
+                  <p class="notif-section-label">Messages non lus</p>
+                  @for (conv of unreadConversations; track conv.convId) {
+                    <div class="notif-item notif-item-message" (click)="openConversationFromNotification(conv.convId)">
+                      <div class="notif-item-content">
+                        <span class="notif-item-name">{{ conv.name }}</span>
+                        <span class="notif-item-count">{{ conv.count }} {{ conv.count === 1 ? 'message' : 'messages' }}</span>
+                      </div>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </div>
+                  }
+                </div>
+              }
+              @if (contactRequests.length === 0 && unreadConversations.length === 0) {
+                <p class="notif-empty">Aucune notification</p>
+              }
+            </div>
+          }
+        </div>
+
+        <div class="user-badge">
+          <span class="welcome">Bienvenue, </span>
+          <span class="username">{{ (auth.user$ | async)?.identifiant ?? '…' }}</span>
+          <span class="status-dot" style="background-color: gold;" [class.connected]="isConnected" [title]="isConnected ? 'MQTT connecté' : 'Connexion…'"></span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Users bar: hidden when chat is open -->
+  @if (!showChat) {
+    <div class="users-bar">
+      <button type="button" class="scroll-arrow scroll-arrow-left" (click)="scrollUsers(-1)" [disabled]="users.length === 0" aria-label="Précédent">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="users-list-horizontal">
+        @if (usersLoading) {
+          <p class="hint">Chargement…</p>
+        } @else if (users.length === 0) {
+          <p class="hint">Recherchez des utilisateurs et ajoutez-les pour discuter.</p>
+        } @else {
+          @for (user of users; track user._id) {
+            <div class="user-item-horizontal" (click)="startConversation(user._id)" [class.online]="isUserOnline(user._id)" [class.disabled]="startingChat">
+              <div class="user-avatar-horizontal" [class.online-avatar]="isUserOnline(user._id)">
+                <span>{{ user.identifiant.charAt(0).toUpperCase() }}</span>
+                @if (isUserOnline(user._id)) {
+                  <span class="online-indicator"></span>
+                }
+              </div>
+              <span class="user-name-horizontal">{{ user.identifiant }}</span>
+            </div>
+          }
+        }
+      </div>
+      <button type="button" class="scroll-arrow scroll-arrow-right" (click)="scrollUsers(1)" [disabled]="users.length === 0" aria-label="Suivant">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+  }
+
+  <div class="content">
+    <section class="chat-section" [class.show]="showChat" *ngIf="conversationId">
+      <div class="chat-header">
+        <div class="chat-header-info">
+          <div class="chat-avatar">
+            <span>{{ selectedUserName.charAt(0).toUpperCase() }}</span>
+            @if (isUserOnline(selectedUserId)) {
+              <span class="online-indicator-small"></span>
+            }
+          </div>
+          <div>
+            <h2>{{ selectedUserName }}</h2>
+            <span class="chat-status" [class.online-text]="isUserOnline(selectedUserId)">
+              {{ isUserOnline(selectedUserId) ? 'En ligne' : 'Hors ligne' }}
+            </span>
+          </div>
+        </div>
+        <button type="button" class="btn-close" (click)="closeChat()" aria-label="Fermer">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M15 5L5 15M5 5l10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="chat-box" #chatBox>
+        @for (msg of messages; track msg._id || $index) {
+          <div class="message" [class.sent]="msg.senderId === myUserId">
+            <span class="message-body">{{ msg.encryptedMessage }}</span>
+            <span class="message-time">{{ formatMessageTime(msg.createdAt) }}</span>
+          </div>
+        }
+      </div>
+      <div class="chat-input-wrap">
+        <input
+          type="text"
+          class="chat-input"
+          [(ngModel)]="newMessage"
+          placeholder="Tapez un message…"
+          (keydown.enter)="$event.preventDefault(); sendMessage()"
+        />
+        <button type="button" class="btn btn-send" (click)="sendMessage()" [disabled]="!newMessage?.trim()">Envoyer</button>
+      </div>
+    </section>
+
+    @if (!conversationId || !showChat) {
+      <div class="empty-state">
+        <p>Sélectionnez un contact pour commencer une conversation.</p>
+      </div>
+    }
+  </div>
+</div>

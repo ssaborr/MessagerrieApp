@@ -1,0 +1,45 @@
+<div class="auth-page">
+  <div class="auth-bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="auth-card">
+    <h1 class="auth-title">Créer un compte</h1>
+    <p class="auth-subtitle">Rejoignez MYmessageriee</p>
+    <form class="auth-form" (ngSubmit)="onsubmit()">
+      <label class="label">Identifiant</label>
+      <input
+        [(ngModel)]="identifiant"
+        name="identifiant"
+        type="text"
+        class="input"
+        placeholder="Choisissez un nom d'utilisateur"
+        autocomplete="username"
+      />
+      <label class="label">Mot de passe</label>
+      <input
+        [(ngModel)]="password"
+        name="password"
+        type="password"
+        class="input"
+        placeholder="Votre mot de passe"
+        autocomplete="new-password"
+      />
+      <label class="label">Retaper votre mot de passe</label>
+      <input
+        [(ngModel)]="passwordConfirmation"
+        name="passwordConfirmation"
+        type="password"
+        class="input"
+        placeholder="Confirmer le mot de passe"
+        autocomplete="new-password"
+      />
+      @if (error) {
+        <p class="error">{{ error }}</p>
+      }
+      <button type="submit" class="btn btn-primary">Créer un compte</button>
+    </form>
+    <a routerLink="/" class="link">Vous avez déjà un compte ? Se connecter</a>
+  </div>
+</div>
