@@ -61,12 +61,8 @@ Real-time messaging app with E2E-ready encryption, contact system, and MQTT-base
 ## Project layout
 
 ```
-pang/
   backend/          # Express API, MQTT subscriber, MongoDB models
   frontend/         # Angular SPA (login, signup, main chat UI)
   README.md
 ```
 
-## License
-
-ISC
